@@ -2,7 +2,7 @@
 #
 # https://developers.facebook.com/docs/graph-api/reference/v2.0/post
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime
 from time import strptime
 from typing import Optional, Iterable
@@ -24,6 +24,12 @@ class FacebookPost:
 
     def __repr__(self) -> str:
         return f'{self.message[0:96]}... ({self.created_time.isoformat()}) <{self.permalink_url}>'
+
+    def dict(self) -> dict:
+        return {
+            k: str(v) if v is not None else None
+            for k, v in asdict(self).items()
+        }
 
 
 def _build_api_url(feed_name: str, fields: list[str], token: str) -> str:
