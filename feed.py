@@ -6,7 +6,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 from time import strptime
 from typing import Optional, Iterable
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs
 
 from requests import Session
 
@@ -84,6 +84,13 @@ def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
             try:
                 # 'attachments': {'data': [{'url': 'https://l.facebook.com/l.php?u=https%3A%2F%2Ffare ...
                 link = post.get('attachments').get('data')[0].get('url')
+
+                if '//l.facebook.com' not in link:
+                    raise KeyError
+
+                # parse the outgoing link
+                parsed = urlparse(link)
+                link = parse_qs(parsed.query)['u'][0]
 
             except (KeyError, AttributeError):
                 link = None
