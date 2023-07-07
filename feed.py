@@ -73,9 +73,13 @@ def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
     # iterate through all pages
     while True:
         resp = http.get(url)
-        resp.raise_for_status()
-        data = resp.json()
+        try:
+            resp.raise_for_status()
+        except Exception as ex:
+            logger.error(f'HTTP request failed with {resp.status_code} code, got response: {resp.text}')
+            raise ex
 
+        data = resp.json()
         logger.debug(f'Got JSON response: {data}')
 
         for post in data.get('data', []):
