@@ -23,7 +23,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     load_dotenv()  # take environment variables from .env.
 
+    # https://developers.facebook.com/tools/accesstoken/
     # https://developers.facebook.com/tools/debug/accesstoken/
+    # https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived/#long-lived-page-token
     token = getenv('FB_TOKEN', default='')
     logging.info(f'Using Facebook token: {token[0:3]}***{token[:3]}')
 
