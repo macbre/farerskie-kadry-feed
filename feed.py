@@ -5,6 +5,28 @@ from typing import Iterable
 
 from requests import Session
 
+# keep the HTTP session
+http = Session()
+http.headers['user-agent'] = 'py-facebook-feed'
+
+
+def make_request(endpoint: str, req_params: dict) -> dict:
+    logger = logging.getLogger('make_request')
+
+    try:
+        resp = http.get(f'https://graph.facebook.com/{endpoint.lstrip("/")}', params=req_params)
+    except:
+        logger.error(f'API request to {endpoint} failed', exc_info=True)
+        raise
+
+    try:
+        resp.raise_for_status()
+    except:
+        logger.error('API response: %s', resp.text, exc_info=True)
+        raise
+
+    return resp.json()
+
 
 def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
     """
@@ -13,25 +35,10 @@ def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
     logger = logging.getLogger('iterate_api_responses')
     logger.info(f'HTTP request to {endpoint}')
 
-    http = Session()
-    http.headers['user-agent'] = 'py-facebook-feed'
-
     items_counter = 0
 
     while True:
-        try:
-            resp = http.get(f'https://graph.facebook.com/{endpoint.lstrip("/")}', params=req_params)
-        except:
-            logger.error(f'API request to {endpoint} failed', exc_info=True)
-            raise
-
-        try:
-            resp.raise_for_status()
-        except:
-            logger.error('API response: %s', resp.text, exc_info=True)
-            raise
-
-        resp_json = resp.json()
+        resp_json = make_request(endpoint, req_params)
         logger.debug('API response: %r', resp_json)
         logger.info('API paging: %r', resp_json.get('paging'))
 
