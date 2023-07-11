@@ -32,93 +32,44 @@ class FacebookPost:
         }
 
 
-def _build_api_url(feed_name: str, fields: list[str], token: str) -> str:
-    path = f"https://graph.facebook.com/v17.0/{feed_name}/feed"
-    query = urlencode(dict(
-        pretty=0,
-        fields=','.join(fields),
-        limit=25,
-        access_token=token,
-    ))
-
-    return f'{path}?{query}'
-
-
 def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
     """
     Returns all posts from a given Facebook feed
     """
     logger = logging.getLogger('get_facebook_feed')
-
     logger.info(f'Getting the "{feed_name}" FB feed ...')
 
-    http = Session()
-    http.headers['user-agent'] = 'py-facebook-feed'
+    feed = iterate_api_responses(endpoint=f"/v17.0/{feed_name}/feed", req_params={
+        'fields': ','.join(
+            ['full_picture', 'message', 'created_time', 'shares', 'permalink_url', 'attachments{url}']
+        ),
+        'access_token': token,
+    })
 
-    url = _build_api_url(
-        feed_name=feed_name,
-        fields=[
-            'full_picture',
-            'message',
-            'created_time',
-            'shares',
-            'permalink_url',
-            'attachments{url}'
-        ],
-        token=token
-    )
+    for post in feed:
+        logger.debug(f'Post: {post}')
 
-    posts_counter = 0
-
-    # iterate through all pages
-    while True:
-        resp = http.get(url)
         try:
-            resp.raise_for_status()
-        except Exception as ex:
-            logger.error(f'HTTP request failed with {resp.status_code} code, got response: {resp.text}')
-            raise ex
+            # 'attachments': {'data': [{'url': 'https://l.facebook.com/l.php?u=https%3A%2F%2Ffare ...
+            link = post.get('attachments').get('data')[0].get('url')
 
-        data = resp.json()
-        logger.debug(f'Got JSON response: {data}')
+            if '//l.facebook.com' not in link:
+                raise KeyError
 
-        for post in data.get('data', []):
-            logger.debug(f'Post: {post}')
+            # parse the outgoing link
+            parsed = urlparse(link)
+            link = parse_qs(parsed.query)['u'][0]
 
-            try:
-                # 'attachments': {'data': [{'url': 'https://l.facebook.com/l.php?u=https%3A%2F%2Ffare ...
-                link = post.get('attachments').get('data')[0].get('url')
+        except (KeyError, AttributeError):
+            link = None
 
-                if '//l.facebook.com' not in link:
-                    raise KeyError
-
-                # parse the outgoing link
-                parsed = urlparse(link)
-                link = parse_qs(parsed.query)['u'][0]
-
-            except (KeyError, AttributeError):
-                link = None
-
-            yield FacebookPost(
-                message=post.get('message', ''),  # can be empty if just re-sharing a post
-                permalink_url=post.get('permalink_url'),
-                full_picture=post.get('full_picture'),
-                created_time=datetime(*(strptime(post.get('created_time'), DATE_FORMAT)[0:6])),
-                link=link,
-            )
-
-            posts_counter += 1
-
-        # do we have a next page
-        next_url = data.get('paging', {}).get('next')
-
-        if next_url is None:
-            break
-
-        logger.info('Found next page')
-        url = next_url
-
-    logger.info(f'Found {posts_counter} posts')
+        yield FacebookPost(
+            message=post.get('message', ''),  # can be empty if just re-sharing a post
+            permalink_url=post.get('permalink_url'),
+            full_picture=post.get('full_picture'),
+            created_time=datetime(*(strptime(post.get('created_time'), DATE_FORMAT)[0:6])),
+            link=link,
+        )
 
 
 def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
@@ -156,7 +107,7 @@ def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
 
         try:
             req_params['after'] = resp_json['paging']['cursors']['after']
-            logger.info('API next page (after) cursor: %r', req_params['after'])
+            logger.debug('API next page (after) cursor: %r', req_params['after'])
         except KeyError:
             # no more pages to iterate over
             logger.info(f'API returned {items_counter} items')
