@@ -1,10 +1,36 @@
+import json
 import logging
-from requests import Session
+from typing import TextIO
 from os import getenv
 
 from feed import iterate_api_responses
-
 from dotenv import load_dotenv
+
+
+def save_feed_to_ndjson(ig_account: str, access_token: str, output: TextIO):
+    logging.info(f'Using IG account: {ig_account}')
+
+    # https://developers.facebook.com/docs/instagram-api/reference/ig-user/media#reading
+    feed = iterate_api_responses(endpoint=f'/v17.0/{ig_account}/media', req_params={
+        'fields': ','.join(
+            ['caption', 'media_url', 'timestamp', 'thumbnail_url', 'shortcode', 'permalink', 'like_count']),
+        'access_token': access_token,
+    })
+
+    for item in feed:
+        logging.info(
+            f'{item["timestamp"]} / {item["like_count"]} likes | {item.get("caption", "")} ({item["timestamp"]}) <{item["permalink"]}>',
+            item)
+
+        data = {
+            'message': item.get("caption", ""),  # there can be only an image shared (i.e. with no message at all)
+            'created_time': item["timestamp"],
+            'permalink_url': item["permalink"],
+            'full_picture': item.get('media_url'),
+        }
+
+        json.dump(data, sort_keys=True, fp=output)
+        output.write("\n")
 
 
 if __name__ == "__main__":
@@ -17,20 +43,9 @@ if __name__ == "__main__":
 
     instagram_user_id = '1918062444917837'
     instagram_account_id = '17841407952879412'
-    fb_page = 'farerskie.kadry'
 
-    logging.info(f'Using IG user: {instagram_user_id}')
-    logging.info(f'Using IG account: {instagram_account_id}')
-
-    # https://developers.facebook.com/docs/instagram-api/reference/ig-user/media#reading
-    feed = iterate_api_responses(endpoint=f'/v17.0/{instagram_account_id}/media', req_params={
-        'fields': ','.join(['caption', 'media_url', 'timestamp', 'thumbnail_url', 'shortcode', 'permalink', 'like_count']),
-        'access_token': token,
-    })
-
-    for item in feed:
-        # logging.info(f'Item: %r', item)
-        logging.info(f'{item["timestamp"]} / {item["like_count"]} likes | {item.get("caption", "")} ({item["timestamp"]}) <{item["permalink"]}>', item)
+    with open('farerskie_kadry_ig.ndjson', 'wt') as fp:
+        save_feed_to_ndjson(ig_account=instagram_account_id, access_token=token, output=fp)
 
     # https://developers.facebook.com/docs/instagram-api/getting-started#before-you-start - you need a pro IG account
     # an your FB access token needs to have the 'instagram_basic' right
