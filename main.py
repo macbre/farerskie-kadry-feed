@@ -5,12 +5,12 @@ from typing import TextIO
 
 from dotenv import load_dotenv
 
-from feed import get_facebook_feed
+from facebook import get_facebook_feed
 
 
 # http://ndjson.org/
-def save_feed_to_ndjson(feed_name: str, token: str, output: TextIO):
-    posts = get_facebook_feed(feed_name, token)
+def save_feed_to_ndjson(feed_name: str, access_token: str, output: TextIO):
+    posts = get_facebook_feed(feed_name, access_token)
 
     for post in posts:
         logging.info(f'{repr(post)}')
@@ -30,4 +30,4 @@ if __name__ == "__main__":
     logging.info(f'Using Facebook token: {token[0:3]}***{token[:3]}')
 
     with open('farerskie_kadry.ndjson', 'wt') as fp:
-        save_feed_to_ndjson(feed_name='FarerskieKadry', token=token, output=fp)
+        save_feed_to_ndjson(feed_name='FarerskieKadry', access_token=token, output=fp)
