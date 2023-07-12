@@ -8,7 +8,7 @@ from time import strptime
 from typing import Optional, Iterable
 from urllib.parse import urlparse, parse_qs
 
-from feed import iterate_api_responses
+from graph_api import iterate_api_responses
 
 # e.g. 2023-02-27T14:31:39+0000
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S+0000'

@@ -3,7 +3,7 @@ import logging
 from typing import TextIO, Optional
 from os import getenv
 
-from feed import iterate_api_responses, make_request
+from graph_api import iterate_api_responses, make_request
 from dotenv import load_dotenv
 
 
