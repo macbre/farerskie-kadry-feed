@@ -1,6 +1,8 @@
 # Provides a generic iterator over paged feeds from https://graph.facebook.com API,
 # handling both Facebook and Instagram.
 import logging
+from datetime import datetime
+from time import strptime
 from typing import Iterable
 
 from requests import Session
@@ -53,3 +55,16 @@ def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
             # no more pages to iterate over
             logger.info(f'API returned {items_counter} items')
             return
+
+
+# e.g. 2023-02-27T14:31:39+0000
+DATE_FORMAT = '%Y-%m-%dT%H:%M:%S+0000'
+
+
+def created_time_field_to_datetime(created_time: str) -> datetime:
+    """
+    Converts strings with times (as returned by Facebook's API) to Python's datatime
+
+    e.g.  2023-02-27T14:31:39+0000
+    """
+    return datetime(*(strptime(created_time, DATE_FORMAT)[0:6]))
