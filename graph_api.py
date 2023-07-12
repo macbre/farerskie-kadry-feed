@@ -1,5 +1,6 @@
 # Provides a generic iterator over paged feeds from https://graph.facebook.com API,
 # handling both Facebook and Instagram.
+import dataclasses
 import logging
 from datetime import datetime
 from time import strptime
@@ -10,6 +11,26 @@ from requests import Session
 # keep the HTTP session
 http = Session()
 http.headers['user-agent'] = 'py-facebook-feed'
+
+
+@dataclasses.dataclass
+class ResponseEntity:
+    """
+    Generic entity dataclass for Facebook posts and Instagram media
+    """
+    message: str
+    permalink_url: str
+    full_picture: str
+    created_time: datetime
+
+    def __repr__(self) -> str:
+        return f'{self.message[0:96]}... ({self.created_time.isoformat()}) <{self.permalink_url}>'
+
+    def dict(self) -> dict:
+        return {
+            k: str(v) if v is not None else None
+            for k, v in dataclasses.asdict(self).items()
+        }
 
 
 def make_request(endpoint: str, req_params: dict) -> dict:
