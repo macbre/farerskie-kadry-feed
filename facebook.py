@@ -4,14 +4,10 @@
 import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime
-from time import strptime
 from typing import Optional, Iterable
 from urllib.parse import urlparse, parse_qs
 
-from graph_api import iterate_api_responses
-
-# e.g. 2023-02-27T14:31:39+0000
-DATE_FORMAT = '%Y-%m-%dT%H:%M:%S+0000'
+from graph_api import iterate_api_responses, created_time_field_to_datetime
 
 
 @dataclass
@@ -21,6 +17,21 @@ class FacebookPost:
     full_picture: str
     created_time: datetime
     link: Optional[str]
+
+    @staticmethod
+    def from_api_entry(post: dict):
+        """
+        Creates a dataclass instance out of Facebook API response
+
+        https://developers.facebook.com/docs/graph-api/reference/v2.0/post#fields
+        """
+        return FacebookPost(
+            message=post.get('message', ''),  # can be empty if just re-sharing a post
+            permalink_url=post.get('permalink_url'),
+            full_picture=post.get('full_picture'),
+            created_time=created_time_field_to_datetime(post.get('created_time')),
+            link=None
+        )
 
     def __repr__(self) -> str:
         return f'{self.message[0:96]}... ({self.created_time.isoformat()}) <{self.permalink_url}>'
@@ -46,12 +57,12 @@ def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
         'access_token': token,
     })
 
-    for post in feed:
-        logger.debug(f'Post: {post}')
+    for entry in feed:
+        logger.debug(f'Post: {entry}')
 
         try:
             # 'attachments': {'data': [{'url': 'https://l.facebook.com/l.php?u=https%3A%2F%2Ffare ...
-            link = post.get('attachments').get('data')[0].get('url')
+            link = entry.get('attachments').get('data')[0].get('url')
 
             if '//l.facebook.com' not in link:
                 raise KeyError
@@ -63,10 +74,8 @@ def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
         except (KeyError, AttributeError):
             link = None
 
-        yield FacebookPost(
-            message=post.get('message', ''),  # can be empty if just re-sharing a post
-            permalink_url=post.get('permalink_url'),
-            full_picture=post.get('full_picture'),
-            created_time=datetime(*(strptime(post.get('created_time'), DATE_FORMAT)[0:6])),
-            link=link,
-        )
+        post = FacebookPost.from_api_entry(entry)
+        post.link = link
+
+        yield post
+
