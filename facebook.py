@@ -2,20 +2,15 @@
 #
 # https://developers.facebook.com/docs/graph-api/reference/v2.0/post
 import logging
-from dataclasses import dataclass, asdict
-from datetime import datetime
+from dataclasses import dataclass
 from typing import Optional, Iterable
 from urllib.parse import urlparse, parse_qs
 
-from graph_api import iterate_api_responses, created_time_field_to_datetime
+from graph_api import iterate_api_responses, created_time_field_to_datetime, ResponseEntity
 
 
 @dataclass
-class FacebookPost:
-    message: str
-    permalink_url: str
-    full_picture: str
-    created_time: datetime
+class FacebookPost(ResponseEntity):
     link: Optional[str]
 
     @staticmethod
@@ -32,15 +27,6 @@ class FacebookPost:
             created_time=created_time_field_to_datetime(post.get('created_time')),
             link=None
         )
-
-    def __repr__(self) -> str:
-        return f'{self.message[0:96]}... ({self.created_time.isoformat()}) <{self.permalink_url}>'
-
-    def dict(self) -> dict:
-        return {
-            k: str(v) if v is not None else None
-            for k, v in asdict(self).items()
-        }
 
 
 def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
