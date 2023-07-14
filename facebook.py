@@ -2,6 +2,7 @@
 #
 # https://developers.facebook.com/docs/graph-api/reference/v2.0/post
 import logging
+import re
 from dataclasses import dataclass
 from typing import Optional, Iterable
 from urllib.parse import urlparse, parse_qs
@@ -65,3 +66,24 @@ def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
 
         yield post
 
+
+def get_first_hashtag(text: str) -> Optional[str]:
+    """
+    'So, #Víkarbyrgi and #Hamrabyrgi' -> Víkarbyrgi
+    """
+    matches = re.search(r'#([^\s]+)', text)
+    return matches.group(1).rstrip(',.') if matches else None
+
+
+def paragraphize(text: str) -> str:
+    """
+    Turns:
+
+    foo
+
+    bar
+
+    into:
+    <p>foo</p><p>bar</p>
+    """
+    return '<p>' + re.sub(r'\n\n', '</p>\n<p>', text) + '</p>' if text else ''
