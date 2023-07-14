@@ -4,8 +4,11 @@ from dataclasses import dataclass
 from typing import TextIO, Optional, Iterable
 from os import getenv
 
-from graph_api import iterate_api_responses, make_request, created_time_field_to_datetime, ResponseEntity
 from dotenv import load_dotenv
+
+from facebook import get_first_hashtag, paragraphize
+from graph_api import iterate_api_responses, make_request, created_time_field_to_datetime, ResponseEntity
+from rss import RssFeedWriter, RssFeedItem
 
 
 @dataclass
@@ -77,5 +80,37 @@ if __name__ == "__main__":
 
     instagram_account_id = ig_account_id_for_fb_page(fb_page='FarerskieKadry', access_token=token)  # 17841407952879412
 
-    with open('farerskie_kadry_ig.ndjson', 'wt') as fp:
-        save_feed_to_ndjson(ig_account=instagram_account_id, access_token=token, output=fp)
+    # with open('farerskie_kadry_ig.ndjson', 'wt') as fp:
+    #     save_feed_to_ndjson(ig_account=instagram_account_id, access_token=token, output=fp)
+
+    # save to the RSS feed
+    with open('rss_instagram.xml', 'wt') as fp:
+        with RssFeedWriter(
+                out=fp,
+                title='Farerskie Kadry na Instagramie',
+                link='https://www.instagram.com/farerskie.kadry/',
+                description='Suma miliona drobnych, banalnych sytuacji, miejsc, '
+                            'ludzi uwiecznionych na cyfrowych kadrach i w nostalgicznych zakamarkach pamięci'
+        ) as feed:
+            limit = 25
+
+            for post in get_instagram_feed(instagram_account_id, access_token=token):
+                # title will be the first hashtag found
+                title = ('#' + get_first_hashtag(post.message)) or post.message[0:32] + '...'
+
+                description = f'<p><img src="{post.full_picture}" style="max-width: 500px; max-height: 500px"></p>' \
+                              f'\n{paragraphize(post.message)}'
+
+                feed.add_item(
+                    RssFeedItem(
+                        title=title,
+                        link=post.permalink_url,
+                        description=description,
+                        published=post.created_time,
+                    )
+                )
+
+                # limit the items in the feed
+                limit -= 1
+                if limit <= 0:
+                    break
