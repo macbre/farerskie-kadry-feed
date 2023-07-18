@@ -9,8 +9,9 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# allow the job to commit to the repository
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -33,6 +34,7 @@ jobs:
       env:
         FB_TOKEN: ${{ secrets.FB_TOKEN }}
       run: |
+        set -x
         python main.py
         python instagram.py
 
