@@ -63,7 +63,7 @@ def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
     while True:
         resp_json = make_request(endpoint, req_params)
         logger.debug('API response: %r', resp_json)
-        logger.info('API paging: %r', resp_json.get('paging'))
+        logger.debug('API paging: %r', resp_json.get('paging'))
 
         for item in resp_json.get('data', []):
             items_counter += 1
