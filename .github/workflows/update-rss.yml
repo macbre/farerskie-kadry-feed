@@ -1,0 +1,45 @@
+# This workflow updates the RSS feeds
+name: Update RSS feeds
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '*/60 */3 * * *'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Update the feeds
+      env:
+        FB_TOKEN: ${{ secrets.FB_TOKEN }}
+      run: |
+        python main.py
+        python instagram.py
+
+    # https://github.com/marketplace/actions/git-auto-commit
+    - name: Commit changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        ref: ${{ github.head_ref }}
+        commit_message: RSS feed updated
+        file_pattern: './docs/*.xml'
