@@ -1,14 +1,15 @@
 import json
 import logging
 from dataclasses import dataclass
+from itertools import islice
 from typing import TextIO, Optional, Iterable
 from os import getenv
 
 from dotenv import load_dotenv
 
-from facebook import get_first_hashtag, paragraphize
 from graph_api import iterate_api_responses, make_request, created_time_field_to_datetime, ResponseEntity
-from rss import RssFeedWriter, RssFeedItem
+from rss import RssFeedWriter
+from utils import response_entity_to_rss_item
 
 
 @dataclass
@@ -16,18 +17,18 @@ class InstagramMedia(ResponseEntity):
     like_count: Optional[int]
 
     @staticmethod
-    def from_api_entry(post: dict):
+    def from_api_entry(api_entry: dict):
         """
         Creates a dataclass instance out of Instagram API response
 
         https://developers.facebook.com/docs/instagram-api/reference/ig-media#fields
         """
         return InstagramMedia(
-            message=post.get('caption', ''),  # there can be only an image shared (i.e. with no message at all)
-            permalink_url=post.get('permalink'),
-            full_picture=post.get('media_url'),
-            created_time=created_time_field_to_datetime(post.get('timestamp')),
-            like_count=post.get('like_count')
+            message=api_entry.get('caption', ''),  # there can be only an image shared (i.e. with no message at all)
+            permalink_url=api_entry.get('permalink'),
+            full_picture=api_entry.get('media_url'),
+            created_time=created_time_field_to_datetime(api_entry.get('timestamp')),
+            like_count=api_entry.get('like_count')
         )
 
 
@@ -50,20 +51,18 @@ def get_instagram_feed(ig_feed_name: str, access_token: str) -> Iterable[Instagr
     logger.info(f'Getting the "{ig_feed_name}" Instagram feed ...')
 
     # https://developers.facebook.com/docs/instagram-api/reference/ig-user/media#reading
-    feed = iterate_api_responses(endpoint=f'/v17.0/{ig_feed_name}/media', req_params={
+    instagram_feed = iterate_api_responses(endpoint=f'/v17.0/{ig_feed_name}/media', req_params={
         'fields': ','.join(
             ['caption', 'media_url', 'timestamp', 'thumbnail_url', 'shortcode', 'permalink', 'like_count']),
         'access_token': access_token,
     })
 
-    for entry in feed:
+    for entry in instagram_feed:
         yield InstagramMedia.from_api_entry(entry)
 
 
 def save_feed_to_ndjson(ig_account: str, access_token: str, output: TextIO):
-    feed = get_instagram_feed(ig_account, access_token)
-
-    for media in feed:
+    for media in get_instagram_feed(ig_account, access_token):
         logging.info(f'{repr(media)}')
 
         json.dump(media.dict(), sort_keys=True, fp=output)
@@ -84,7 +83,7 @@ if __name__ == "__main__":
     #     save_feed_to_ndjson(ig_account=instagram_account_id, access_token=token, output=fp)
 
     # save to the RSS feed
-    with open('rss_instagram.xml', 'wt') as fp:
+    with open('docs/instagram.xml', 'wt') as fp:
         with RssFeedWriter(
                 out=fp,
                 title='Farerskie Kadry na Instagramie',
@@ -92,25 +91,11 @@ if __name__ == "__main__":
                 description='Suma miliona drobnych, banalnych sytuacji, miejsc, '
                             'ludzi uwiecznionych na cyfrowych kadrach i w nostalgicznych zakamarkach pamięci'
         ) as feed:
-            limit = 25
+            ig_feed = islice(get_instagram_feed(instagram_account_id, access_token=token), 30)
 
-            for post in get_instagram_feed(instagram_account_id, access_token=token):
-                # title will be the first hashtag found
-                title = ('#' + get_first_hashtag(post.message)) or post.message[0:32] + '...'
-
-                description = f'<p><img src="{post.full_picture}" style="max-width: 500px; max-height: 500px"></p>' \
-                              f'\n{paragraphize(post.message)}'
-
+            for post in ig_feed:
                 feed.add_item(
-                    RssFeedItem(
-                        title=title,
-                        link=post.permalink_url,
-                        description=description,
-                        published=post.created_time,
-                    )
+                    response_entity_to_rss_item(post)
                 )
 
-                # limit the items in the feed
-                limit -= 1
-                if limit <= 0:
-                    break
+    logging.info('Done')
