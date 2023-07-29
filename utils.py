@@ -37,8 +37,8 @@ def response_entity_to_rss_item(entity: ResponseEntity) -> RssFeedItem:
     hashtag = get_first_hashtag(entity.message)
     title = ('#' + hashtag) if hashtag else (entity.message[0:32] + '...')
 
-    description = f'<p><img src="{entity.full_picture}" style="max-width: 500px; max-height: 500px"></p>' \
-                  f'\n{paragraphize(entity.message)}'
+    description = f'<p><img src="{entity.full_picture}" style="max-width: 500px; max-height: 500px" class="fb-feed-image"></p>' if entity.full_picture else ''
+    description += f'\n{paragraphize(entity.message)}'
 
     return RssFeedItem(
         title=title,
