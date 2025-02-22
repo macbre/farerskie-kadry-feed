@@ -44,4 +44,4 @@ jobs:
       with:
         ref: ${{ github.head_ref }}
         commit_message: RSS feed updated
-        file_pattern: './docs/*.xml'
+        file_pattern: './docs/*.xml *.ndjson'
