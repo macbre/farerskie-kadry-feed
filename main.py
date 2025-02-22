@@ -30,8 +30,8 @@ if __name__ == "__main__":
     token = getenv('FB_TOKEN', default='')
     logging.info(f'Using Facebook token: {token[0:3]}***{token[:3]}')
 
-    # with open('farerskie_kadry.ndjson', 'wt') as fp:
-    #     save_feed_to_ndjson(feed_name='FarerskieKadry', access_token=token, output=fp)
+    with open('farerskie_kadry.ndjson', 'wt') as fp:
+        save_feed_to_ndjson(feed_name='FarerskieKadry', access_token=token, output=fp)
 
     # save to the RSS feed
     with open('docs/facebook.xml', 'wt') as fp:
