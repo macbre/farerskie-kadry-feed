@@ -79,8 +79,8 @@ if __name__ == "__main__":
 
     instagram_account_id = ig_account_id_for_fb_page(fb_page='FarerskieKadry', access_token=token)  # 17841407952879412
 
-    # with open('farerskie_kadry_ig.ndjson', 'wt') as fp:
-    #     save_feed_to_ndjson(ig_account=instagram_account_id, access_token=token, output=fp)
+    with open('farerskie_kadry_ig.ndjson', 'wt') as fp:
+        save_feed_to_ndjson(ig_account=instagram_account_id, access_token=token, output=fp)
 
     # save to the RSS feed
     with open('docs/instagram.xml', 'wt') as fp:
