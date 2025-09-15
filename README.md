@@ -1,4 +1,5 @@
 # py-facebook-feed
+[![Update RSS feeds](https://github.com/macbre/farerskie-kadry-feed/actions/workflows/update-rss.yml/badge.svg)](https://github.com/macbre/farerskie-kadry-feed/actions/workflows/update-rss.yml)
 
 ## Install
 
