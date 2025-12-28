@@ -35,9 +35,9 @@ class InstagramMedia(ResponseEntity):
 # # https://developers.facebook.com/docs/instagram-api/getting-started#before-you-start
 def ig_account_id_for_fb_page(fb_page: str, access_token: str) -> Optional[str]:
     # https://developers.facebook.com/docs/instagram-api/reference/ig-user/
-    resp = make_request(f'/v17.0/{fb_page}', req_params={
+    resp = make_request(f'/v24.0/{fb_page}', req_params={
         'fields': ','.join(
-            ['connected_instagram_account{id,name,biography}', 'instagram_accounts{username,id,followed_by_count,media_count,profile_pic}', 'name', 'about']
+            ['connected_instagram_account{id,name,biography}', 'instagram_accounts{username,id,followed_by_count,media_count,profile_picture_url}', 'name', 'about']
         ),
         'access_token': access_token,
     })
@@ -51,7 +51,7 @@ def get_instagram_feed(ig_feed_name: str, access_token: str) -> Iterable[Instagr
     logger.info(f'Getting the "{ig_feed_name}" Instagram feed ...')
 
     # https://developers.facebook.com/docs/instagram-api/reference/ig-user/media#reading
-    instagram_feed = iterate_api_responses(endpoint=f'/v17.0/{ig_feed_name}/media', req_params={
+    instagram_feed = iterate_api_responses(endpoint=f'/v24.0/{ig_feed_name}/media', req_params={
         'fields': ','.join(
             ['caption', 'media_url', 'timestamp', 'thumbnail_url', 'shortcode', 'permalink', 'like_count']),
         'access_token': access_token,
