@@ -3,7 +3,7 @@
 import dataclasses
 import logging
 from datetime import datetime
-from time import strptime
+from time import strptime, sleep
 from typing import Iterable
 
 from requests import Session
@@ -38,6 +38,10 @@ def make_request(endpoint: str, req_params: dict) -> dict:
 
     try:
         resp = http.get(f'https://graph.facebook.com/{endpoint.lstrip("/")}', params=req_params)
+
+        # avoid hitting API rate limits
+        # ERROR:make_request:API response: {"error":{"code":1,"message":"Please reduce the amount of data you're asking for, then retry your request"}}
+        sleep(5)
     except:
         logger.error(f'API request to {endpoint} failed', exc_info=True)
         raise
