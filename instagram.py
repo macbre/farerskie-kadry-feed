@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Provides Facebook Feed API features
+# Creates an activity feed for a given Instagram account, based on the Facebook Graph API
 #
-# https://developers.facebook.com/docs/graph-api/reference/v2.0/post
+# https://developers.facebook.com/docs/instagram-api/reference/ig-media
 import json
 import logging
 from dataclasses import dataclass
@@ -55,7 +55,7 @@ def get_instagram_feed(ig_feed_name: str, access_token: str) -> Iterable[Instagr
     logger.info(f'Getting the "{ig_feed_name}" Instagram feed ...')
 
     # https://developers.facebook.com/docs/instagram-api/reference/ig-user/media#reading
-    instagram_feed = iterate_api_responses(endpoint=f'/v24.0/{ig_feed_name}/media', req_params={
+    instagram_feed = iterate_api_responses(endpoint=f'/v25.0/{ig_feed_name}/media', req_params={
         'fields': ','.join(
             ['caption', 'media_url', 'timestamp', 'thumbnail_url', 'shortcode', 'permalink', 'like_count']),
         'access_token': access_token,

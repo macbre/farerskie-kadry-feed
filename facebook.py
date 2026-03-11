@@ -36,7 +36,7 @@ def get_facebook_feed(feed_name: str, token: str) -> Iterable[FacebookPost]:
     logger = logging.getLogger('get_facebook_feed')
     logger.info(f'Getting the "{feed_name}" FB feed ...')
 
-    feed = iterate_api_responses(endpoint=f"/v17.0/{feed_name}/feed", req_params={
+    feed = iterate_api_responses(endpoint=f"/v25.0/{feed_name}/feed", req_params={
         'fields': ','.join(
             ['full_picture', 'message', 'created_time', 'shares', 'permalink_url', 'attachments{url}']
         ),
