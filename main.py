@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Creates an activity feed for a given Facebook page, based on the Facebook Graph API
+#
+# https://developers.facebook.com/tools/accesstoken/
 import logging
 import json
 from itertools import islice

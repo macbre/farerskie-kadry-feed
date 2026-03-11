@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Provides Facebook Feed API features
+#
+# https://developers.facebook.com/docs/graph-api/reference/v2.0/post
 import json
 import logging
 from dataclasses import dataclass

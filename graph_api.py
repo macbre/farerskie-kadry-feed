@@ -33,26 +33,35 @@ class ResponseEntity:
         }
 
 
-def make_request(endpoint: str, req_params: dict) -> dict:
+def make_request(endpoint: str, req_params: dict, retries: int = 4) -> dict:
     logger = logging.getLogger('make_request')
+    retry_wait = 2  # seconds
 
-    try:
-        resp = http.get(f'https://graph.facebook.com/{endpoint.lstrip("/")}', params=req_params)
+    while retries > 0:
+        try:
+            resp = http.get(f'https://graph.facebook.com/{endpoint.lstrip("/")}', params=req_params)
+            resp.raise_for_status()
 
-        # avoid hitting API rate limits
-        # ERROR:make_request:API response: {"error":{"code":1,"message":"Please reduce the amount of data you're asking for, then retry your request"}}
-        sleep(5)
-    except:
-        logger.error(f'API request to {endpoint} failed', exc_info=True)
-        raise
+            # avoid hitting API rate limits
+            # ERROR:make_request:API response: {"error":{"code":1,"message":"Please reduce the amount of data you're asking for, then retry your request"}}
+            sleep(3)
+            return resp.json()
+        
+        # Allow Ctrl+C to stop the script immediately, without waiting for retries
+        except KeyboardInterrupt:
+            raise
 
-    try:
-        resp.raise_for_status()
-    except:
-        logger.error('API response: %s', resp.text, exc_info=True)
-        raise
+        except:
+            retries -= 1
+            if retries == 0:
+                logger.error(f'API request to {endpoint} failed: {resp.text}', exc_info=True)
+                raise
 
-    return resp.json()
+            logger.warning(f'API request to {endpoint} failed, retrying ({retries} retries left) after {retry_wait}s', exc_info=True)
+
+            sleep(retry_wait)
+            retry_wait *= 2  # exponential backoff
+
 
 
 def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
