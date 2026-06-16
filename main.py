@@ -14,10 +14,14 @@ from facebook import get_facebook_feed
 from rss import RssFeedWriter
 from utils import response_entity_to_rss_item
 
+# ERROR:iterate_api_responses:Iterating on /v25.0/FarerskieKadry/feed failed after processing 300 items
+# {"error":{"code":1,"message":"Please reduce the amount of data you're asking for, then retry your request"}}
+ITEMS_LIMIT = 300
+
 
 # http://ndjson.org/
 def save_feed_to_ndjson(feed_name: str, access_token: str, output: TextIO):
-    for entry in get_facebook_feed(feed_name, access_token):
+    for entry in get_facebook_feed(feed_name, access_token, ITEMS_LIMIT):
         logging.info(f'{repr(entry)}')
 
         json.dump(entry.dict(), sort_keys=True, fp=output)
@@ -46,9 +50,9 @@ if __name__ == "__main__":
                 description='Suma miliona drobnych, banalnych sytuacji, miejsc, '
                             'ludzi uwiecznionych na cyfrowych kadrach i w nostalgicznych zakamarkach pamięci'
         ) as feed:
-            ig_feed = islice(get_facebook_feed(feed_name='FarerskieKadry', token=token), 30)
+            fb_feed = islice(get_facebook_feed(feed_name='FarerskieKadry', token=token, items_limit=ITEMS_LIMIT), 30)
 
-            for post in ig_feed:
+            for post in fb_feed:
                 # do not add posts that share links from the blog
                 if post.link and 'farerskiekadry.pl' in post.link:
                     continue

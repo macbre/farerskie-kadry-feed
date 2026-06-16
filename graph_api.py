@@ -7,6 +7,7 @@ from time import strptime, sleep
 from typing import Iterable
 
 from requests import Session
+from requests.exceptions import RequestException
 
 # keep the HTTP session
 http = Session()
@@ -33,9 +34,9 @@ class ResponseEntity:
         }
 
 
-def make_request(endpoint: str, req_params: dict, retries: int = 4) -> dict:
+def make_request(endpoint: str, req_params: dict, retries: int = 2) -> dict:
     logger = logging.getLogger('make_request')
-    retry_wait = 2  # seconds
+    retry_wait = 1  # seconds
 
     while retries > 0:
         try:
@@ -46,49 +47,59 @@ def make_request(endpoint: str, req_params: dict, retries: int = 4) -> dict:
             # ERROR:make_request:API response: {"error":{"code":1,"message":"Please reduce the amount of data you're asking for, then retry your request"}}
             sleep(3)
             return resp.json()
-        
+
         # Allow Ctrl+C to stop the script immediately, without waiting for retries
         except KeyboardInterrupt:
             raise
 
-        except:
+        except RequestException as ex:
             retries -= 1
             if retries == 0:
-                logger.error(f'API request to {endpoint} failed: {resp.text}', exc_info=True)
+                logger.error(f'API request to {endpoint} failed: {ex.response.text}', exc_info=True)
                 raise
 
-            logger.warning(f'API request to {endpoint} failed, retrying ({retries} retries left) after {retry_wait}s', exc_info=True)
+            logger.warning(f'API request to {endpoint} failed, retrying ({retries} retries left) after {retry_wait}s: : {ex.response.text}', exc_info=True)
 
             sleep(retry_wait)
             retry_wait *= 2  # exponential backoff
 
 
 
-def iterate_api_responses(endpoint: str, req_params: dict) -> Iterable[dict]:
+def iterate_api_responses(endpoint: str, req_params: dict, items_limit: int = None) -> Iterable[dict]:
     """
     Yields data items for all paged response of the given endpoint
     """
     logger = logging.getLogger('iterate_api_responses')
-    logger.info(f'HTTP request to {endpoint}')
+    logger.info(f'HTTP request to {endpoint} (with the items limit of {items_limit or "no limit"}) ...')
 
     items_counter = 0
 
-    while True:
-        resp_json = make_request(endpoint, req_params)
-        logger.debug('API response: %r', resp_json)
-        logger.debug('API paging: %r', resp_json.get('paging'))
+    try:
+        while True:
+            resp_json = make_request(endpoint, req_params)
+            logger.debug('API response: %r', resp_json)
+            logger.debug('API paging: %r', resp_json.get('paging'))
 
-        for item in resp_json.get('data', []):
-            items_counter += 1
-            yield item
+            for item in resp_json.get('data', []):
+                items_counter += 1
+                yield item
 
-        try:
-            req_params['after'] = resp_json['paging']['cursors']['after']
-            logger.debug('API next page (after) cursor: %r', req_params['after'])
-        except KeyError:
-            # no more pages to iterate over
-            logger.info(f'API returned {items_counter} items')
-            return
+                if items_limit and items_counter >= items_limit:
+                    logger.warning(f'API returned {items_counter} items (limit: {items_limit}), leaving early')
+                    return
+
+            try:
+                req_params['after'] = resp_json['paging']['cursors']['after']
+                logger.debug('API next page (after) cursor: %r', req_params['after'])
+            except KeyError:
+                # no more pages to iterate over
+                logger.info(f'API returned {items_counter} items')
+                return
+
+    except RequestException:
+        # ERROR:iterate_api_responses:Iterating on /v25.0/FarerskieKadry/feed failed after processing 300 items
+        logger.error(f'Iterating on {endpoint} failed after processing {items_counter} items')
+        raise
 
 
 # e.g. 2023-02-27T14:31:39+0000

@@ -4,7 +4,7 @@
 ## Install
 
 ```
-virtualenv env -ppython3
+python3 -m venv env. env/bin/activate
 . env/bin/activate
 pip install -r requirements.txt
 python main.py
