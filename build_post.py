@@ -1,4 +1,4 @@
-# Builds the post combining a few Facebook feed post filtered from farerskie_kadry.ndjson file
+# Builds the post combining a few Facebook feed post filtered from farerskie_kadry_2017.ndjson file
 #
 # Writes the html to the post.html file
 import json
@@ -14,21 +14,20 @@ def parse_feed_from_file(stream_in: TextIO) -> Iterator[dict]:
         row = json.loads(line)
         logger.debug(f'Post: {row["message"][0:64]}')
 
-        if '2018-07-18' <= row['created_time'] <= '2018-08-28':
-            if 'FarerskiDziennikZPodróży' in row['message']:
-                yield row
+        if '#FarerskiDziennikZPodróży' in row['message']:
+            yield row
 
 
-def sanitize_message(message: str) -> str:
-    message = message.replace('#FarerskiDziennikZPodróży', '')
-    return message.strip()
+def sanitize_message(msg: str) -> str:
+    msg = msg.replace('#FarerskiDziennikZPodróży', '')
+    return msg.strip()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     with open('post.html', 'wt') as output:
-        with open('farerskie_kadry.ndjson', 'rt') as fp:
+        with open('farerskie_kadry_2017.ndjson', 'rt') as fp:
             posts = list(parse_feed_from_file(stream_in=fp))
 
             # make the posts to be in chronological order
@@ -36,12 +35,16 @@ if __name__ == "__main__":
 
             curl = []
 
+            output.write('<title>Dziennik z Podróży</title>')
+            output.write('<meta charset="utf-8">')
+            output.write('<style>img { background: #eee }</style>')
+
             for idx, post in enumerate(posts):
                 # https://farerskiekadry.pl/wp-content/uploads/2023/07/Dziennik-z-podrozy-2018_01.jpg
                 if '/fb.png' not in post["full_picture"]:
-                    curl.append(f'curl \'{post["full_picture"]}\' > /tmp/Dziennik-z-podrozy-2018_{str(idx+1).zfill(2)}.jpg')
+                    curl.append(f'curl \'{post["full_picture"]}\' > /tmp/Dziennik-z-podrozy-2017_{str(idx+1).zfill(2)}.jpg')
 
-                    image = f'https://farerskiekadry.pl/wp-content/uploads/2023/07/Dziennik-z-podrozy-2018_{str(idx+1).zfill(2)}.jpg'
+                    image = f'https://farerskiekadry.pl/wp-content/uploads/2026/07/Dziennik-z-podrozy-2017_{str(idx+1).zfill(2)}.jpg'
                 else:
                     image = None
 
@@ -49,10 +52,11 @@ if __name__ == "__main__":
                 message = sanitize_message(post['message'])
 
                 # find the "Dzień N" header
-                day_header = re.match(r'(Dzień [\d i]+.)', message)  # ; print([day_header, message])
+                day_header = re.search(r'(dzień [\d+ i/]+.)', message, flags=re.IGNORECASE)
+                logging.debug('day_header: %r, %r', message, day_header)
 
                 message = message.replace(day_header.group(1), '') if day_header else message
-                day_header = day_header.group(1) if day_header else 'Dzień N'
+                day_header = day_header.group(1).capitalize() if day_header else 'Dzień N'
 
                 message = re.sub(r'\n+', '</p><p>', message)
 
@@ -62,7 +66,7 @@ if __name__ == "__main__":
                 image_align = 'left' if idx % 2 else 'right'
                 published = post['created_time'][0:10]
 
-                published = f'{published[8:10].lstrip("0")} {"lipca" if published[5:7] == "07" else "sierpnia"} {published[0:4]}'
+                published = f'{published[8:10].lstrip("0")} {"kwietnia" if published[5:7] == "04" else "maja"} {published[0:4]}'
                 # print([published, post['created_time'][0:10]])
 
                 output.write(
@@ -90,4 +94,4 @@ if __name__ == "__main__":
                 """
 
         # now, print out some pictures download instructions
-        # print("\n\ncURL instruction:\n" + "\n".join(curl))
+        print("\n\ncURL instruction:\n" + "\n".join(curl))
