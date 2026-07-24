@@ -14,14 +14,9 @@ from facebook import get_facebook_feed
 from rss import RssFeedWriter
 from utils import response_entity_to_rss_item
 
-# ERROR:iterate_api_responses:Iterating on /v25.0/FarerskieKadry/feed failed after processing 300 items
-# {"error":{"code":1,"message":"Please reduce the amount of data you're asking for, then retry your request"}}
-ITEMS_LIMIT = 300
-
-
 # http://ndjson.org/
 def save_feed_to_ndjson(feed_name: str, access_token: str, output: TextIO):
-    for entry in get_facebook_feed(feed_name, access_token, ITEMS_LIMIT):
+    for entry in get_facebook_feed(feed_name, access_token): #, year=2017):
         logging.info(f'{repr(entry)}')
 
         json.dump(entry.dict(), sort_keys=True, fp=output)
@@ -41,7 +36,7 @@ if __name__ == "__main__":
     with open('farerskie_kadry.ndjson', 'wt') as fp:
         save_feed_to_ndjson(feed_name='FarerskieKadry', access_token=token, output=fp)
 
-    # save to the RSS feed
+    # save to the RSS feed (last 30 items)
     with open('docs/facebook.xml', 'wt') as fp:
         with RssFeedWriter(
                 out=fp,
@@ -50,7 +45,7 @@ if __name__ == "__main__":
                 description='Suma miliona drobnych, banalnych sytuacji, miejsc, '
                             'ludzi uwiecznionych na cyfrowych kadrach i w nostalgicznych zakamarkach pamięci'
         ) as feed:
-            fb_feed = islice(get_facebook_feed(feed_name='FarerskieKadry', token=token, items_limit=ITEMS_LIMIT), 30)
+            fb_feed = islice(get_facebook_feed(feed_name='FarerskieKadry', token=token), 30)
 
             for post in fb_feed:
                 # do not add posts that share links from the blog

@@ -3,6 +3,7 @@
 # https://developers.facebook.com/docs/graph-api/reference/v2.0/post
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, Iterable
 from urllib.parse import urlparse, parse_qs
 
@@ -29,25 +30,36 @@ class FacebookPost(ResponseEntity):
         )
 
 
-def get_facebook_feed(feed_name: str, token: str, items_limit = None) -> Iterable[FacebookPost]:
+def get_facebook_feed(feed_name: str, token: str, items_limit = None, year: int = None) -> Iterable[FacebookPost]:
     """
-    Returns all posts from a given Facebook feed
+    Returns all posts from a given Facebook feed.
+
+    Pass year= to restrict to a single calendar year.
     """
     logger = logging.getLogger('get_facebook_feed')
-    logger.info(f'Getting the "{feed_name}" FB feed ...')
+    logger.info(f'Getting the "{feed_name}" FB feed (year={year or "all"}) ...')
 
     # https://developers.facebook.com/docs/graph-api/reference/v25.0/page/feed
     # Maximum Posts:
     #  * The API will return approximately 600 ranked, published posts per year.
     #  * You can only read a maximum of 100 feed posts with the limit field.
     #    If you try to read more than that you will get an error message to not exceed 100.
-    feed = iterate_api_responses(endpoint=f"/v25.0/{feed_name}/feed", req_params={
+    params = {
         'fields': ','.join(
             ['full_picture', 'message', 'created_time', 'shares', 'permalink_url', 'attachments{url}']
         ),
         'limit': 100,
         'access_token': token,
-    }, items_limit=items_limit)
+    }
+    if year:
+        params['since'] = int(datetime(year, 1, 1).timestamp())
+        params['until'] = int(datetime(year + 1, 1, 1).timestamp())
+
+    feed = iterate_api_responses(
+        endpoint=f"/v25.0/{feed_name}/feed",
+        req_params=params,
+        items_limit=items_limit,
+    )
 
     for entry in feed:
         logger.debug(f'Post: {entry}')
