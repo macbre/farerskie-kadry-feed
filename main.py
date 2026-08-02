@@ -16,7 +16,7 @@ from utils import response_entity_to_rss_item
 
 # http://ndjson.org/
 def save_feed_to_ndjson(feed_name: str, access_token: str, output: TextIO):
-    for entry in get_facebook_feed(feed_name, access_token): #, year=2017):
+    for entry in get_facebook_feed(feed_name, access_token, items_limit=300): #, year=2017):
         logging.info(f'{repr(entry)}')
 
         json.dump(entry.dict(), sort_keys=True, fp=output)
